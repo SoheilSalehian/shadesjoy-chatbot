@@ -17,11 +17,42 @@ var (
 	AUTH_TOKEN = os.Getenv("AUTH_TOKEN")
 )
 
-func main() {
-	http.HandleFunc("/webhook", MessengerVerify)
+type MessengerInput struct {
+	Entry []struct {
+		Time      uint64 `json:"time,omitempty"`
+		Messaging []struct {
+			Sender struct {
+				Id string `json:"id"`
+			} `json:"sender,omitempty"`
+			Recipient struct {
+				Id string `json:"id"`
+			} `json:"recipient,omitempty"`
+			Timestamp uint64 `json:"timestamp,omitempty"`
+			Message   *struct {
+				Mid        string `json:"mid,omitempty"`
+				Seq        uint64 `json:"seq,omitempty"`
+				Text       string `json:"text,omitempty"`
+				Attachment *struct {
+					Payload struct {
+						Url string `json:"url,omitempty"`
+					} `json:"payload,omitempty"`
+					Type string `json:"type,omitempty"`
+				} `json:"attachment,omitempty"`
+			} `json:"message,omitempty"`
+		} `json:"messaging"`
+	}
+}
 
-	fmt.Println("Starting server on :9090")
-	log.Fatal(http.ListenAndServe(":9090", nil))
+type ApiAiInput struct {
+	Status struct {
+		Code      int
+		ErrorType string
+	}
+	Result struct {
+		Action           *string
+		ActionIncomplete bool
+		Speech           string
+	} `json:"result"`
 }
 
 func MessengerVerify(w http.ResponseWriter, r *http.Request) {
@@ -71,44 +102,6 @@ func MessengerVerify(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type MessengerInput struct {
-	Entry []struct {
-		Time      uint64 `json:"time,omitempty"`
-		Messaging []struct {
-			Sender struct {
-				Id string `json:"id"`
-			} `json:"sender,omitempty"`
-			Recipient struct {
-				Id string `json:"id"`
-			} `json:"recipient,omitempty"`
-			Timestamp uint64 `json:"timestamp,omitempty"`
-			Message   *struct {
-				Mid        string `json:"mid,omitempty"`
-				Seq        uint64 `json:"seq,omitempty"`
-				Text       string `json:"text,omitempty"`
-				Attachment *struct {
-					Payload struct {
-						Url string `json:"url,omitempty"`
-					} `json:"payload,omitempty"`
-					Type string `json:"type,omitempty"`
-				} `json:"attachment,omitempty"`
-			} `json:"message,omitempty"`
-		} `json:"messaging"`
-	}
-}
-
-type ApiAiInput struct {
-	Status struct {
-		Code      int
-		ErrorType string
-	}
-	Result struct {
-		Action           *string
-		ActionIncomplete bool
-		Speech           string
-	} `json:"result"`
-}
-
 func getApiAiResponse(m MessengerInput) (resp string, err error) {
 	params := url.Values{}
 	params.Add("query", m.Entry[0].Messaging[0].Message.Text)
@@ -136,4 +129,11 @@ func getApiAiResponse(m MessengerInput) (resp string, err error) {
 
 		return input.Result.Speech, nil
 	}
+}
+
+func main() {
+	http.HandleFunc("/webhook", MessengerVerify)
+
+	fmt.Println("Starting server on :9090")
+	log.Fatal(http.ListenAndServe(":9090", nil))
 }
