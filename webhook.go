@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -62,7 +63,7 @@ func MessengerVerify(w http.ResponseWriter, r *http.Request) {
 
 		if len(verify_token) > 0 && len(challenge) > 0 && verify_token == "developers-are-gods" {
 			w.Header().Set("Content-Type", "text/plain")
-			fmt.Fprintf(w, challenge)
+			log.Info(w, challenge)
 			return
 		} // }}}
 	} else if r.Method == "POST" {
@@ -80,7 +81,7 @@ func MessengerVerify(w http.ResponseWriter, r *http.Request) {
 
 			if resp, err := getApiAiResponse(*input); err == nil {
 				if flag == 0 {
-					fmt.Println("text only here")
+					log.Debug("text only here")
 					reply.Message.Text = resp
 				} else {
 					reply.Message.Attachment.Payload.Url = "https://www.selectspecs.com/fashion-lifestyle/wp-content/uploads/2016/04/oie_vf4mCZstQiBz-1050x700.jpg"
@@ -91,7 +92,7 @@ func MessengerVerify(w http.ResponseWriter, r *http.Request) {
 				reply.Message.Mid = ""
 
 				b, _ := json.Marshal(reply)
-				fmt.Println(string(b))
+				log.Info(string(b))
 				url := fmt.Sprintf("https://graph.facebook.com/v2.6/me/messages?access_token=%s", PAGE_TOKEN)
 				http.Post(url,
 					"application/json",
@@ -132,8 +133,11 @@ func getApiAiResponse(m MessengerInput) (resp string, err error) {
 }
 
 func main() {
+	if AUTH_TOKEN == "" || PAGE_TOKEN == "" {
+		log.Fatal("Please set both PAGE_TOKEN and AUTH_TOKEN.")
+	}
 	http.HandleFunc("/webhook", MessengerVerify)
 
-	fmt.Println("Starting server on :9090")
+	log.Info("Starting server on :9090")
 	log.Fatal(http.ListenAndServe(":9090", nil))
 }
