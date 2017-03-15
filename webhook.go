@@ -30,15 +30,15 @@ type MessengerInput struct {
 			} `json:"recipient,omitempty"`
 			Timestamp uint64 `json:"timestamp,omitempty"`
 			Message   *struct {
-				Mid        string `json:"mid,omitempty"`
-				Seq        uint64 `json:"seq,omitempty"`
-				Text       string `json:"text,omitempty"`
-				Attachment *struct {
+				Mid         string `json:"mid,omitempty"`
+				Seq         uint64 `json:"seq,omitempty"`
+				Text        string `json:"text,omitempty"`
+				Attachments []struct {
 					Payload struct {
 						Url string `json:"url,omitempty"`
 					} `json:"payload,omitempty"`
 					Type string `json:"type,omitempty"`
-				} `json:"attachment,omitempty"`
+				} `json:"attachments,omitempty"`
 			} `json:"message,omitempty"`
 		} `json:"messaging"`
 	}
@@ -72,6 +72,8 @@ func MessengerVerify(w http.ResponseWriter, r *http.Request) {
 		input := new(MessengerInput)
 		if err := json.NewDecoder(r.Body).Decode(input); err == nil {
 
+			fmt.Printf("%+v", input.Entry[0].Messaging[0].Message)
+
 			//lets swap sender and recipient
 			reply := input.Entry[0].Messaging[0]
 			reply.Sender, reply.Recipient = reply.Recipient, reply.Sender
@@ -84,8 +86,8 @@ func MessengerVerify(w http.ResponseWriter, r *http.Request) {
 					log.Info("text only here")
 					reply.Message.Text = resp
 				} else {
-					reply.Message.Attachment.Payload.Url = "https://www.selectspecs.com/fashion-lifestyle/wp-content/uploads/2016/04/oie_vf4mCZstQiBz-1050x700.jpg"
-					reply.Message.Attachment.Type = "image"
+					reply.Message.Attachments[0].Payload.Url = "https://www.selectspecs.com/fashion-lifestyle/wp-content/uploads/2016/04/oie_vf4mCZstQiBz-1050x700.jpg"
+					reply.Message.Attachments[0].Type = "image"
 				}
 
 				reply.Message.Seq = 0 //these fields are not used so remove them with omit empty
