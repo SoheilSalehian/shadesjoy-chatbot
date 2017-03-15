@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	PAGE_TOKEN   = os.Getenv("PAGE_TOKEN")
-	VERIFY_TOKEN = "developers-are-gods"
-	AUTH_TOKEN   = os.Getenv("AUTH_TOKEN")
+	PAGE_TOKEN    = os.Getenv("PAGE_TOKEN")
+	VERIFY_TOKEN  = "developers-are-gods"
+	FB_APP_SECRET = os.Getenv("FB_APP_SECRET")
+	AUTH_TOKEN    = os.Getenv("AUTH_TOKEN")
 )
 
 type ApiAiInput struct {
@@ -30,26 +31,6 @@ type ApiAiInput struct {
 		ActionIncomplete bool
 		Speech           string
 	} `json:"result"`
-}
-
-func main() {
-	bot := mbotapi.NewBotAPI(PAGE_TOKEN, VERIFY_TOKEN, "a5318d65de57385a49bd90bfc9efc31c")
-
-	callbacks, mux := bot.SetWebhook("/webhook")
-	go http.ListenAndServe("0.0.0.0:9091", mux)
-	log.Info("starting server on :9091")
-
-	var msg interface{}
-	for callback := range callbacks {
-		log.Printf("[%#v] %s", callback.Sender, callback.Message.Text)
-
-		if resp, err := getApiAiResponse(callback.Message.Text, callback.Sender.ID); err == nil {
-			msg = mbotapi.NewMessage(resp)
-		} else {
-			msg = mbotapi.NewMessage(callback.Message.Text)
-		}
-		bot.Send(callback.Sender, msg, mbotapi.RegularNotif)
-	}
 }
 
 func getApiAiResponse(message string, senderId int64) (resp string, err error) {
@@ -78,5 +59,32 @@ func getApiAiResponse(message string, senderId int64) (resp string, err error) {
 		}
 
 		return input.Result.Speech, nil
+	}
+}
+
+func main() {
+	bot := mbotapi.NewBotAPI(PAGE_TOKEN, VERIFY_TOKEN, FB_APP_SECRET)
+
+	callbacks, mux := bot.SetWebhook("/webhook")
+	go http.ListenAndServe("0.0.0.0:9091", mux)
+	log.Info("starting server on :9091")
+
+	var msg interface{}
+	for callback := range callbacks {
+		log.Printf("[%#v] %s", callback.Sender, callback.Message.Text)
+
+		if resp, err := getApiAiResponse(callback.Message.Text, callback.Sender.ID); err == nil {
+			msg = mbotapi.NewMessage(resp)
+		} else {
+			msg = mbotapi.NewMessage(callback.Message.Text)
+		}
+
+		// Send messages or send image results
+		if len(callback.Message.Attachments) == 0 {
+			bot.Send(callback.Sender, msg, mbotapi.RegularNotif)
+		} else {
+			image := mbotapi.NewImageFromURL("https://www.selectspecs.com/fashion-lifestyle/wp-content/uploads/2016/04/oie_vf4mCZstQiBz-1050x700.jpg")
+			bot.Send(callback.Sender, image, mbotapi.RegularNotif)
+		}
 	}
 }
