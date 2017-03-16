@@ -83,8 +83,18 @@ func main() {
 		if len(callback.Message.Attachments) == 0 {
 			bot.Send(callback.Sender, msg, mbotapi.RegularNotif)
 		} else {
-			image := mbotapi.NewImageFromURL("https://www.selectspecs.com/fashion-lifestyle/wp-content/uploads/2016/04/oie_vf4mCZstQiBz-1050x700.jpg")
-			bot.Send(callback.Sender, image, mbotapi.RegularNotif)
+			template := mbotapi.NewGenericTemplate()
+			element := mbotapi.NewElement("Rayban XL")
+			buyButton := mbotapi.NewURLButton("Buy it!", "http://example.com")
+			template.Elements = append(template.Elements, element)
+			template.Elements[0].ImageURL = "https://www.selectspecs.com/fashion-lifestyle/wp-content/uploads/2016/04/oie_vf4mCZstQiBz-1050x700.jpg"
+			template.Elements[0].Buttons = append(template.Elements[0].Buttons, buyButton)
+			element = mbotapi.NewElement("Carrera X2")
+			template.Elements = append(template.Elements, element)
+			template.Elements[1].ImageURL = "https://www.toniandguy-opticians.com/images/94001-94100/94043/94043_med.jpg"
+			template.Elements[1].Buttons = append(template.Elements[1].Buttons, buyButton)
+			log.Printf("%#v", template)
+			bot.Send(callback.Sender, template, mbotapi.RegularNotif)
 		}
 	}
 }
