@@ -123,17 +123,19 @@ func main() {
 			bot.Send(callback.Sender, msg, mbotapi.RegularNotif)
 		} else {
 			log.Info(callback.Message.Attachments[0].Payload.URL)
-			links := visual_search(callback.Message.Attachments[0].Payload.URL)
+			products, err := callShopStyle()
+			if err != nil {
+				log.Error(err)
+			}
 
 			template := mbotapi.NewGenericTemplate()
-			element := mbotapi.NewElement("Rayban XL")
-			buyButton := mbotapi.NewURLButton("Buy it!", "http://example.com")
 
 			i := 0
-			for _, link := range links.Links {
-				log.Info(link)
+			for _, product := range products.Products {
+				element := mbotapi.NewElement(product.Name)
 				template.Elements = append(template.Elements, element)
-				template.Elements[i].ImageURL = link
+				template.Elements[i].ImageURL = product.Image.Sizes.Best.URL
+				buyButton := mbotapi.NewURLButton("Buy it!", product.ClickURL)
 				template.Elements[i].Buttons = append(template.Elements[i].Buttons, buyButton)
 				i = i + 1
 			}
