@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -33,6 +34,10 @@ type ApiAiInput struct {
 	} `json:"result"`
 }
 
+type VisualSearchResponse struct {
+	Links []string `json:"links"`
+}
+
 func getApiAiResponse(message string, senderId int64) (resp string, err error) {
 	params := url.Values{}
 	params.Add("query", message)
@@ -62,6 +67,40 @@ func getApiAiResponse(message string, senderId int64) (resp string, err error) {
 	}
 }
 
+func visual_search(queryImage string) *VisualSearchResponse {
+	url := "http://localhost:8000/quick"
+	log.Info(queryImage)
+
+	q := map[string]string{"image_url": queryImage}
+
+	jsonStr, err := json.Marshal(q)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+
+	log.Info(req)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	log.Info("Visual search server response Status:", resp.Status)
+	// fmt.Println("response Headers:", resp.Header)
+	body, _ := ioutil.ReadAll(resp.Body)
+	// fmt.Println("response Body:", string(body))
+
+	links := new(VisualSearchResponse)
+	err = json.Unmarshal(body, &links)
+
+	return links
+}
+
 func main() {
 	bot := mbotapi.NewBotAPI(PAGE_TOKEN, VERIFY_TOKEN, FB_APP_SECRET)
 
@@ -83,17 +122,21 @@ func main() {
 		if len(callback.Message.Attachments) == 0 {
 			bot.Send(callback.Sender, msg, mbotapi.RegularNotif)
 		} else {
+			log.Info(callback.Message.Attachments[0].Payload.URL)
+			links := visual_search(callback.Message.Attachments[0].Payload.URL)
+
 			template := mbotapi.NewGenericTemplate()
 			element := mbotapi.NewElement("Rayban XL")
 			buyButton := mbotapi.NewURLButton("Buy it!", "http://example.com")
-			template.Elements = append(template.Elements, element)
-			template.Elements[0].ImageURL = "https://www.selectspecs.com/fashion-lifestyle/wp-content/uploads/2016/04/oie_vf4mCZstQiBz-1050x700.jpg"
-			template.Elements[0].Buttons = append(template.Elements[0].Buttons, buyButton)
-			element = mbotapi.NewElement("Carrera X2")
-			template.Elements = append(template.Elements, element)
-			template.Elements[1].ImageURL = "https://www.toniandguy-opticians.com/images/94001-94100/94043/94043_med.jpg"
-			template.Elements[1].Buttons = append(template.Elements[1].Buttons, buyButton)
-			log.Printf("%#v", template)
+
+			i := 0
+			for _, link := range links.Links {
+				log.Info(link)
+				template.Elements = append(template.Elements, element)
+				template.Elements[i].ImageURL = link
+				template.Elements[i].Buttons = append(template.Elements[i].Buttons, buyButton)
+				i = i + 1
+			}
 			bot.Send(callback.Sender, template, mbotapi.RegularNotif)
 		}
 	}
